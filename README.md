@@ -1,10 +1,10 @@
 # authaction-python-fastapi-example
 
-A Python FastAPI application demonstrating API authorization using [AuthAction](https://app.authaction.com/) with JWKS-based JWT validation.
+A Python FastAPI application demonstrating API authorization using [AuthAction](https://app.authaction.com/) with the `authaction-python-sdk`.
 
 ## Overview
 
-This application shows how to configure and handle authorization using AuthAction's access tokens in a FastAPI API. It validates JSON Web Tokens (JWT) signed with RS256 by fetching public keys dynamically from AuthAction's JWKS endpoint.
+This application shows how to configure and handle authorization using AuthAction's access tokens in a FastAPI API. It validates JSON Web Tokens (JWT) by using the `authaction` SDK, which handles JWKS fetching and RS256 validation automatically.
 
 ## Prerequisites
 
@@ -99,7 +99,7 @@ authaction-python-fastapi-example/
 ├── app/
 │   ├── main.py              # FastAPI app + route definitions
 │   └── auth/
-│       └── jwt_bearer.py    # JWKS fetching and JWT validation
+│       └── jwt_bearer.py    # AuthAction SDK setup and require_auth dependency
 ├── .env.example
 ├── requirements.txt
 └── README.md
@@ -107,30 +107,14 @@ authaction-python-fastapi-example/
 
 ## Code Explanation
 
-### `app/auth/jwt_bearer.py` — JWT Validation
+### `app/auth/jwt_bearer.py` — Auth Dependency Setup
 
-Equivalent to `JwtStrategy` in the NestJS example.
-
-- **`_get_jwks()`** — Fetches and in-memory caches the public keys from
-  `https://{AUTHACTION_DOMAIN}/.well-known/jwks.json`. On a cache miss caused
-  by key rotation, it busts the cache and retries once.
-
-- **`_find_rsa_key(token)`** — Extracts the `kid` from the unverified token
-  header and finds the matching RSA key in the JWKS response.
-
-- **`verify_token(token)`** — Decodes and validates the JWT using:
-  - Algorithm: `RS256`
-  - Issuer: `https://{AUTHACTION_DOMAIN}`
-  - Audience: `{AUTHACTION_AUDIENCE}`
-
-- **`JWTBearer`** — An `HTTPBearer` subclass used as a FastAPI dependency. It
-  extracts the `Bearer` token and calls `verify_token`, returning the decoded
-  payload to the route handler.
+Creates an `AuthAction` client from `authaction` with `AUTHACTION_DOMAIN` and `AUTHACTION_AUDIENCE`, then calls `make_require_auth(aa)` from `authaction.fastapi` to produce a `require_auth` FastAPI dependency. The SDK handles JWKS fetching, caching, and RS256 JWT validation internally.
 
 ### `app/main.py` — Routes
 
 - **`GET /public`** — Accessible without authentication.
-- **`GET /protected`** — Requires a valid JWT via `Depends(jwt_bearer)`.
+- **`GET /protected`** — Requires a valid JWT via `Depends(jwt_bearer)`. The decoded payload is available to the route handler.
 
 ## Common Issues
 
